@@ -2,6 +2,9 @@
 
 # Import the needed python modules 
 import logging
+import sys
+import argparse
+import json
 
 from citest.base.json_scrubber import JsonScrubber
 from citest.service_testing import cli_agent
@@ -19,7 +22,7 @@ class AzAgent(cli_agent.CliAgent):
         """ The Azure location to use for the test """
         return self.__location
 
-    def __init__(self, location, resgroup, trace=True):
+    def __init__(self, trace=True):
         """ Construct the instance 
 
         Args: 
@@ -27,35 +30,31 @@ class AzAgent(cli_agent.CliAgent):
             trace: Wether to trace all I/O by default
         """
 
-        super(AzAgent, self).__init__('az', output_scrubber=JsonScrubber())
-        self.__location = location
-        self.__resgroup = resgroup
+        super(AzAgent, self).__init__('az')
+        #self.__SPN = SPN
+        #self.__resgroup = resgroup
         self.trace = trace
-        self.logger = logging.getLogger(__name__)
-        
-    def build_az_command_args(self, az_command, args, resgroup=None, location=None):
+        #self.logger = logging.getLogger(__name__)
 
-        """"
+    def build_az_command_args(self, az_group, az_subgroup, az_command, params):
 
-    Args:
-      action: The operation we are going to perform on the resource.
-      resource: The kubectl resource we are going to operate on (if applicable).
-      args: The arguments following [gcloud_module, gce_type].
-    Returns:
-      list of complete command line arguments following implied 'kubectl'
-      return [action] + ([resource] if resource else []) + (args if args else [])
-      """
+        """"Build the Azure command line to be used
+        Args:
+        action: 
+        Returns:
+     
+        return [action] + ([resource] if resource else []) + (args if args else [])
+        """
 
-
-        if not location:
-            location = self.__location
-        
-        preamble = []
-        if resgroup:
-            preamble += ['--resource-group', resgroup]
-        if location:
-            preamble += ['--location', location]
-        return az_command + args
+        preambule = []
+        if not az_subgroup:
+            cmdline = preambule + [ az_group ,az_command] + params
+            print "No Subgroup %r" % cmdline
+            return preambule + [ az_group ,az_command] + params
+        else:
+            cmdline = preambule + [ az_group, az_subgroup, az_command] + params
+            print "Subgroup %s" % cmdline
+            return preambule + [ az_group, az_subgroup ,az_command] + params
 
     def run_resource_list_commandline(self, command_args, trace=True):
         """Runs the given command and returns the json resouce list.
@@ -77,6 +76,39 @@ class AzAgent(cli_agent.CliAgent):
         # return doc[root_key] if root_key else doc
         return doc
 
-    def get_resource_list(self, context, format='json'):
-        cmdline = 'az group list'
-        return self.run(cmdline, trace=self.trace)
+    def get_resource_list(self, az_group, az_subgroup, az_command, params ):
+
+        """Returns a resource list returned when executing the aws commandline.
+
+        This is a combination of build_az_command_args and
+        run_resource_list_commandline.
+        """
+        args = context.eval(args)
+        args = self.build_az_command_args(az_group=az_group,
+                                        az_subgroup=az_subgroup,
+                                        az_command=az_command,
+                                        params=params)
+        return self.run_resource_list_commandline(args, trace=trace)
+
+
+
+def main():
+    """Trying the azure agent code"""
+    import az_agent
+    az = az_agent.AzAgent()
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-SPN")
+    parser.add_argument("-SPNSecret")
+    parser.add_argument("-TenantID")
+    args = parser.parse_args()
+
+    az_args = ['vm', 'list']
+    az_params = ['--output', 'json']
+
+    cmdline = az.build_az_command_args('vm', '', 'list', az_params)
+    listvm = az.run_resource_list_commandline(cmdline)
+    print listvm
+    
+if __name__ == '__main__':
+  sys.exit(main())

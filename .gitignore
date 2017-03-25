@@ -14,3 +14,4 @@ build/
 *.journal
 *.egg-info/
 venv/
+.vscode/
