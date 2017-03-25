@@ -50,11 +50,15 @@ class AzAgent(cli_agent.CliAgent):
         if not az_subgroup:
             cmdline = preambule + [ az_group ,az_command] + params
             print "No Subgroup %r" % cmdline
-            return preambule + [ az_group ,az_command] + params
+        elif not az_group:
+            cmdline = preambule + [ az_subgroup, az_command] + params
+            print "Subgroup %s" % cmdline
         else:
             cmdline = preambule + [ az_group, az_subgroup, az_command] + params
             print "Subgroup %s" % cmdline
-            return preambule + [ az_group, az_subgroup ,az_command] + params
+
+        return cmdline            
+        
 
     def run_resource_list_commandline(self, command_args, trace=True):
         """Runs the given command and returns the json resouce list.
@@ -66,9 +70,14 @@ class AzAgent(cli_agent.CliAgent):
         Returns:
             List of objects from the command.
         """
+        # This is where login should happen 
+
         az_response = self.run(command_args, trace)
         if not az_response.ok():
-            raise ValueError(az_response.error)
+            if "az account set" in az_response.error:
+                print "You are not logged on to Azure"
+                ####### Insert code here to login to Azure #########
+                raise ValueError(az_response.error)
 
         decoder = json.JSONDecoder()
         doc = decoder.decode(az_response.output)
@@ -76,14 +85,14 @@ class AzAgent(cli_agent.CliAgent):
         # return doc[root_key] if root_key else doc
         return doc
 
-    def get_resource_list(self, az_group, az_subgroup, az_command, params ):
+    def get_resource_list(self, az_group, az_subgroup, az_command, params, trace=True):
 
         """Returns a resource list returned when executing the aws commandline.
 
         This is a combination of build_az_command_args and
         run_resource_list_commandline.
         """
-        args = context.eval(args)
+        #args = context.eval(args)
         args = self.build_az_command_args(az_group=az_group,
                                         az_subgroup=az_subgroup,
                                         az_command=az_command,
@@ -106,9 +115,11 @@ def main():
     az_args = ['vm', 'list']
     az_params = ['--output', 'json']
 
-    cmdline = az.build_az_command_args('vm', '', 'list', az_params)
-    listvm = az.run_resource_list_commandline(cmdline)
+    #cmdline = az.build_az_command_args('', 'vm', 'list', az_params)
+    listvm = az.get_resource_list('storage', 'account', 'list', [])
     print listvm
     
+
+
 if __name__ == '__main__':
   sys.exit(main())
