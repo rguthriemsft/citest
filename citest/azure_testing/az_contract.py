@@ -129,10 +129,10 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
             constraint basis.
         """
 
-    super(AzClauseBuilder, self).__init__(
-        title=title, retryable_for_secs=retryable_for_secs)
-    self.__factory = GCloudObjectFactory(gcloud)
-    self.__strict = strict
+        super(AzClauseBuilder, self).__init__(
+            title=title, retryable_for_secs=retryable_for_secs)
+        self.__factory = GCloudObjectFactory(gcloud)
+        self.__strict = strict
 
     def list_resources(self, type, extra_args=None):
         """Observe resources of a particular type.
