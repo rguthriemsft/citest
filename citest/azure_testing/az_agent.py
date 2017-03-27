@@ -101,25 +101,25 @@ class AzAgent(cli_agent.CliAgent):
 
 
 
-def main():
-    """Trying the azure agent code"""
-    import az_agent
-    az = az_agent.AzAgent("westus")
+# def main():
+#     """Trying the azure agent code"""
+#     import az_agent
+#     az = az_agent.AzAgent("westus")
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("-SPN")
-    parser.add_argument("-SPNSecret")
-    parser.add_argument("-TenantID")
-    args = parser.parse_args()
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("-SPN")
+#     parser.add_argument("-SPNSecret")
+#     parser.add_argument("-TenantID")
+#     args = parser.parse_args()
 
-    az_args = ['vm', 'list']
-    az_params = ['--output', 'json']
+#     az_args = ['vm', 'list']
+#     az_params = ['--output', 'json']
 
-    #cmdline = az.build_az_command_args('', 'vm', 'list', az_params)
-    listvm = az.get_resource_list('storage', 'account', 'list', [])
-    print listvm
+#     #cmdline = az.build_az_command_args('', 'vm', 'list', az_params)
+#     listvm = az.get_resource_list('storage', 'account', 'list', [])
+#     print listvm
     
 
 
-if __name__ == '__main__':
-  sys.exit(main())
+# if __name__ == '__main__':
+#   sys.exit(main())
