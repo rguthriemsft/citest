@@ -81,9 +81,10 @@ class AzAgent(cli_agent.CliAgent):
         doc = decoder.decode(az_response.output)
         # The following line is from the aws_agent
         # return doc[root_key] if root_key else doc
+        
         return doc
 
-    def get_resource_list(self, context, az_group, az_subgroup, az_command, args, trace=True):
+    def get_resource_list(self, az_group, az_subgroup, az_command, args, trace=True):
 
         """Returns a resource list returned when executing the aws commandline.
 
