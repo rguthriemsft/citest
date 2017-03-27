@@ -22,7 +22,7 @@ class AzAgent(cli_agent.CliAgent):
         """ The Azure location to use for the test """
         return self.__location
 
-    def __init__(self, trace=True):
+    def __init__(self, location, trace=True):
         """ Construct the instance 
 
         Args: 
@@ -32,11 +32,11 @@ class AzAgent(cli_agent.CliAgent):
 
         super(AzAgent, self).__init__('az')
         #self.__SPN = SPN
-        #self.__resgroup = resgroup
+        self.__location = location
         self.trace = trace
         #self.logger = logging.getLogger(__name__)
 
-    def build_az_command_args(self, az_group, az_subgroup, az_command, params):
+    def build_az_command_args(self, az_group, az_subgroup, az_command, args, location=None):
 
         """"Build the Azure command line to be used
         Args:
@@ -48,13 +48,13 @@ class AzAgent(cli_agent.CliAgent):
 
         preambule = []
         if not az_subgroup:
-            cmdline = preambule + [ az_group ,az_command] + params
+            cmdline = preambule + [ az_group ,az_command] + args
             print "No Subgroup %r" % cmdline
         elif not az_group:
-            cmdline = preambule + [ az_subgroup, az_command] + params
+            cmdline = preambule + [ az_subgroup, az_command] + args
             print "Subgroup %s" % cmdline
         else:
-            cmdline = preambule + [ az_group, az_subgroup, az_command] + params
+            cmdline = preambule + [ az_group, az_subgroup, az_command] + args
             print "Subgroup %s" % cmdline
 
         return cmdline            
@@ -74,10 +74,8 @@ class AzAgent(cli_agent.CliAgent):
 
         az_response = self.run(command_args, trace)
         if not az_response.ok():
-            if "az account set" in az_response.error:
-                print "You are not logged on to Azure"
-                ####### Insert code here to login to Azure #########
-                raise ValueError(az_response.error)
+            # TODO(Insert code here to login to Azure)
+            raise ValueError(az_response.error)
 
         decoder = json.JSONDecoder()
         doc = decoder.decode(az_response.output)
@@ -85,18 +83,20 @@ class AzAgent(cli_agent.CliAgent):
         # return doc[root_key] if root_key else doc
         return doc
 
-    def get_resource_list(self, az_group, az_subgroup, az_command, params, trace=True):
+    def get_resource_list(self, context, az_group, az_subgroup, az_command, args, trace=True):
 
         """Returns a resource list returned when executing the aws commandline.
 
         This is a combination of build_az_command_args and
         run_resource_list_commandline.
         """
-        #args = context.eval(args)
+        # The context is used by citest for it's execution context
+
+        args = context.eval(args)
         args = self.build_az_command_args(az_group=az_group,
                                         az_subgroup=az_subgroup,
                                         az_command=az_command,
-                                        params=params)
+                                        args=args)
         return self.run_resource_list_commandline(args, trace=trace)
 
 
@@ -104,7 +104,7 @@ class AzAgent(cli_agent.CliAgent):
 def main():
     """Trying the azure agent code"""
     import az_agent
-    az = az_agent.AzAgent()
+    az = az_agent.AzAgent("westus")
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-SPN")
