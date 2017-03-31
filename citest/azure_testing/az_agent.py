@@ -17,12 +17,8 @@ class AzAgent(cli_agent.CliAgent):
       subscription: The default subscription to use 
       location: The default location to use
     """
-    @property
-    def location(self):
-        """ The Azure location to use for the test """
-        return self.__location
 
-    def __init__(self, location, trace=True):
+    def __init__(self, trace=True):
         """ Construct the instance 
 
         Args: 
@@ -31,10 +27,8 @@ class AzAgent(cli_agent.CliAgent):
         """
 
         super(AzAgent, self).__init__('az')
-        #self.__SPN = SPN
-        self.__location = location
         self.trace = trace
-        #self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
     def build_az_command_args(self, az_group, az_subgroup, az_command, args, location=None):
 

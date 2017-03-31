@@ -131,7 +131,7 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
 
         super(AzClauseBuilder, self).__init__(
             title=title, retryable_for_secs=retryable_for_secs)
-        self.__factory = GCloudObjectFactory(gcloud)
+        self.__factory  = AzObjectFactory(az)
         self.__strict = strict
 
     def list_resources(self, type, extra_args=None):
