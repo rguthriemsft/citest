@@ -17,12 +17,8 @@ class AzAgent(cli_agent.CliAgent):
       subscription: The default subscription to use 
       location: The default location to use
     """
-    @property
-    def location(self):
-        """ The Azure location to use for the test """
-        return self.__location
 
-    def __init__(self, location, trace=True):
+    def __init__(self, trace=True):
         """ Construct the instance 
 
         Args: 
@@ -30,13 +26,11 @@ class AzAgent(cli_agent.CliAgent):
             trace: Wether to trace all I/O by default
         """
 
-        super(AzAgent, self).__init__('az')
-        #self.__SPN = SPN
-        self.__location = location
+        super(AzAgent, self).__init__('/Users/jstroheker/bin/az')
         self.trace = trace
-        #self.logger = logging.getLogger(__name__)
+        self.logger = logging.getLogger(__name__)
 
-    def build_az_command_args(self, az_group, az_subgroup, az_command, args, location=None):
+    def build_az_command_args(self, az_resource, az_command, args):
 
         """"Build the Azure command line to be used
         Args:
@@ -46,18 +40,9 @@ class AzAgent(cli_agent.CliAgent):
         return [action] + ([resource] if resource else []) + (args if args else [])
         """
 
-        preambule = []
-        if not az_subgroup:
-            cmdline = preambule + [ az_group ,az_command] + args
-            print "No Subgroup %r" % cmdline
-        elif not az_group:
-            cmdline = preambule + [ az_subgroup, az_command] + args
-            print "Subgroup %s" % cmdline
-        else:
-            cmdline = preambule + [ az_group, az_subgroup, az_command] + args
-            print "Subgroup %s" % cmdline
-
-        return cmdline            
+        preamble = []
+        globalcmd = [az_resource, az_command] + args
+        return preamble + globalcmd
         
 
     def run_resource_list_commandline(self, command_args, trace=True):

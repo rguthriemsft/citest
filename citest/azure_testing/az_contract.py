@@ -7,186 +7,165 @@ import logging
 import traceback
 
 # Import the modules from citest
-from citest import json_contract as jc
-from citest.json_predicate import JsonError
-from citest.service_testing import cli_agent
+from .. import json_contract as jc
+from ..json_predicate import JsonError
+from ..service_testing import cli_agent
 
 
 class AzObjectObserver(jc.ObjectObserver):
-    """ Observe Az resources
+  """ Observe Az resources"""
+
+  def __init__(self, az, args, filter=None):
+    """Construct the observer.
+
+    Args:
+    az = AzCloudAgent instance to use.
+    args: Commang-line arguments list to execute.
     """
 
-    def __init__(self, az, args, filter=None):
-        """Construct the observer.
+    super(AzObjectObserver, self).__init__(filter)
+    self.__az = az
+    self.__args = args
 
-        Args:
-        az = AzCloudAgent instance to use.
-        args: Commang-line arguments list to execute.
-        """
+  def export_to_json_snapshot(self, snapshot, entity):
+    snapshot.edge_builder.make_control(entity, 'Args', self.__args)
+    super(AzObjectObserver, self).export_to_json_snapshot(snapshot, entity)
 
-        super(AzObjectObserver, self).__init__(filter)
-        self.__az = az
-        self.__args = args
+  def __str__(self):
+    return 'AzObjectObserver({0})'.format(self.__args)
 
-    def export_to_json_snapshot(self, snapshot, entity):
-        snapshot.edge_builder.make_control(entity, 'Args', self.__args)
-        super(AzObjectObserver, self).export_to_json_snapshot(snapshot, entity)
+  def collect_observation(self, context, observation, trace=True):
+    args = context.eval(self.__args)
+    az_response = self.__az.run(args, trace=trace)
+    if not az_response.ok():
+        observation.add_error(
+            cli_agent.CliAgentRunError(self.__az, az_response))
+    return []
 
-    def __str__(self):
-        return 'AzObjectObserver({0})'.format(self.__args)
-
-    def collect_observation(self, context, observation, trace=True):
-        args = context.eval(self.__args)
-        az_response = self.__az.run(args, trace=trace)
-        if not az_response.ok():
-            observation.add_error(
-                cli_agent.CliAgentRunError(self.__az, az_response))
+    decode = json.JSONDecoder()
+    try:
+        doc = decode.decode(az_response.output)
+        if not isinstance(doc, list):
+            doc = [doc]
+        observation.add_all_objects(doc)
+    except ValueError as vex:
+        error = 'Invalid JSON in response: %s' % str(az_response)
+        logging.getLogger(__name__).info('%s\n%s\n---------------\n',
+                                            error, traceback.format_exc())
+        observation.add_error(JsonError(error, vex))
         return []
 
-        decode = json.JSONDecoder()
-        try:
-            doc = decode.decode(az_response.output)
-            if not isinstance(doc, list):
-                doc = [doc]
-            observation.add_all_objects(doc)
-        except ValueError as vex:
-            error = 'Invalid JSON in response: %s' % str(az_response)
-            logging.getLogger(__name__).info('%s\n%s\n---------------\n',
-                                             error, traceback.format_exc())
-            observation.add_error(JsonError(error, vex))
-            return []
-
-        return observation.objects
+    return observation.objects
 
 
-class AzObjectFactory(object):
+    """Specify a resource instance to inspect later.
+    example of az command that will be leveraged :
+    Name / Resource Group / Type
+    az vm show -g resource_group --name name_of_the_object
 
-    def __init__(self, az):
-        self.__az = az
+    Args:
+    type: name for this Azure resource type.
+    name: the name of the specified resource instance to inspect.
 
-    def new_list_resources(self, type, extra_args=None):
-        """Specify a resource list to be returned later.
-        Args:
-        type: az name for the resource type.
+    Return:
+    An jc.AzObjectObserver object to return the specified resource details when called.
+    """
+    resgroup = None
+    if extra_args is None:
+        extra_args = []
 
-        Returns:
-        A jc.ObjectObserver to return the specified resource list when called
-        """
-        cmd = self.__az.build_az_command_args(
-            type, '', ['list'] + extra_args, location=none)
-        return AzObjectObserver(self.__az, cmd)
+    if self.__az.command_needs_resgroup(type, 'show'):
+        resgroup = self.__az.resgroup
+    try:
+        if extra_args.index('-g') >= 0:
+            resgroup = None
+    except ValueError:
+        pass
 
-    def new_inspect_resource(self, type, name, resgroup, extra_args=None):
-        """Specify a resource instance to inspect later.
-        example of az command that will be leveraged :
-        Name / Resource Group / Type
-        az vm show -g resource_group --name name_of_the_object
+    show_cmd = ['list']
+    if name:
+        show_cmd.append(name)
 
-        Args:
-        type: name for this Azure resource type.
-        name: the name of the specified resource instance to inspect.
-
-        Return:
-        An jc.AzObjectObserver object to return the specified resource details when called.
-        """
-        resgroup = None
-        if extra_args is None:
-            extra_args = []
-
-        if self.__az.command_needs_resgroup(type, 'show'):
-            resgroup = self.__az.resgroup
-        try:
-            if extra_args.index('-g') >= 0:
-                resgroup = None
-        except ValueError:
-            pass
-
-        show_cmd = ['list']
-        if name:
-            show_cmd.append(name)
-
-        cmd = self.__az.build_az_command_args(
-            type, show_cmd + extra_args,
-            resgroup=self.__az.resgroup, location=location)
-        return AzObjectObserver(self.__az, cmd)
+    cmd = self.__az.build_az_command_args(
+        type, show_cmd + extra_args,
+        resgroup=self.__az.resgroup, location=location)
+    return AzObjectObserver(self.__az, cmd)
 
 
 class AzClauseBuilder(jc.ContractClauseBuilder):
-    """A ContractClause that facilitate observing the Azure state """
+  """A ContractClause that facilitate observing the Azure state """
 
-    def __init__(self, title, az, retryable_for_secs=0, strict=False):
-        """Construct new clause.
+  def __init__(self, title, az, retryable_for_secs=0, strict=False):
+    """Construct new clause.
 
-        Args:
-        title: The string title for the clause is only for reporting purposes.
-        az: The AzAgent to make the observation for the clause to verify.
-        retryable_for_secs: Number of seconds that observations can be retried
-            if their verification initially fails.
-        strict: DEPRECATED flag indicating whether the clauses (added later)
-            must be true for all objects (strict) or at least one (not strict).
-            See ValueObservationVerifierBuilder for more information.
-            This is deprecated because in the future this should be on a per
-            constraint basis.
-        """
+    Args:
+    title: The string title for the clause is only for reporting purposes.
+    az: The AzAgent to make the observation for the clause to verify.
+    retryable_for_secs: Number of seconds that observations can be retried
+        if their verification initially fails.
+    strict: DEPRECATED flag indicating whether the clauses (added later)
+        must be true for all objects (strict) or at least one (not strict).
+        See ValueObservationVerifierBuilder for more information.
+        This is deprecated because in the future this should be on a per
+        constraint basis.
+    """
+    super(AzClauseBuilder, self).__init__(
+        title=title, retryable_for_secs=retryable_for_secs)
+    self.__az  = az
+    self.__strict = strict
 
-        super(AzClauseBuilder, self).__init__(
-            title=title, retryable_for_secs=retryable_for_secs)
-        self.__factory = GCloudObjectFactory(gcloud)
-        self.__strict = strict
+  def collect_resources(self, az_resource, command,
+                          args=None, filter=None,
+                          no_resources_ok=False):
+    """Collect the Azure resources of a particular type.
 
-    def list_resources(self, type, extra_args=None):
-        """Observe resources of a particular type.
+    Args:
+        az_resource: The az resource module name we're looking in (e.g. 'vm')
+        command: The az command name to run (e.g. 'list')
+        args: An array of strings containing the remaining az command parameters.
+        filter: If provided, a filter to use for refining the collection.
+        no_resources_ok: Whether or not the resource is required.
+            If the resource is not required, 'resource not found' error is
+            considered successful.
+    """
+    args = args or []
+    cmd = self.__az.build_az_command_args(
+        az_resource, command, args)
 
-        This will call 'az resource show --name  -g  --resource-type= '
-        """
-        self.observer = self.__factory.new_list_resources(type, extra_args)
-        observation_builder = jc.ValueObservationVerifierBuilder(
-            'List' + type, strict=self.__strict)
-        self.verifier_builder.append_verifier_builder(observation_builder)
+    self.observer = AzObjectObserver(self.__az, cmd)
 
-        return observation_builder
+    if no_resources_ok:
+      error_verifier = cli_agent.CliAgentObservationFailureVerifier(
+          title='"Not Found" permitted.',
+          error_regex='(?:.* operation: Cannot find .*)|(?:.*\(.*NotFound\).*)')
+      disjunction_builder = jc.ObservationVerifierBuilder(
+          'Collect {0} or Not Found'.format(command))
+      disjunction_builder.append_verifier(error_verifier)
 
-    def inspect_resource(self, type, name, extra_args=None, no_resource_ok=False):
-        """Observe the details of a specific instance.
+      collect_builder = jc.ValueObservationVerifierBuilder(
+          'Collect {0}'.format(command), strict=self.__strict)
+      disjunction_builder.append_verifier_builder(
+          collect_builder, new_term=True)
+      self.verifier_builder.append_verifier_builder(
+          disjunction_builder, new_term=True)
+    else:
+      collect_builder = jc.ValueObservationVerifierBuilder(
+          'Collect {0}'.format(command), strict=self.__strict)
+      self.verifier_builder.append_verifier_builder(collect_builder)
 
-        ********** To Change **********
-        This ultimately calls a "az ... |type| |name| describe |extra_args|"
-
-        Args:
-            type: The az resource type  (e.g. instances)
-            name: The Azure resource name
-            extra_args: Additional parameters to pass to gcloud.
-            no_resource_ok: Whether or not the resource is required.
-                If the resource is not required, a 404 is treated as a valid check.
-                Because resource deletion is asynchronous, there is no explicit
-                API here to confirm that a resource does not exist.
-
-        Returns:
-            A js.ValueObservationVerifier that will collect the requested resource
-                when its verify() method is run.
-        """
-        self.observer = self.__factory.new_inspect_resource(
-            type, name, extra_args)
-
-        if no_resource_ok is not true:
-            inspect_builder = jc.ValueObservationVerifierBuilder(
-                'Inspect {0} {1}'.format(type, name), strict=self.__strict)
-            self.verifier_builder.append_verifier_builder(inspect_builder)
-
-        return inspect_builder
-
+    return collect_builder
 
 class AzContractBuilder(jc.ContractBuilder):
 
-    def __init__(self, az):
-        """Construct a new json_contract
+  def __init__(self, az):
+    """Construct a new json_contract
 
-        Args:
-            az: The Azure Agent to use for communication with Azure
-        """
-        super(AzContractBuilder, self).__init__(
-            lambda title, retryable_for_secs=0, strict=False:
-            AzClauseBuilder(
-                title, az=az,
-                retryable_for_secs=retryable_for_secs, strict=strict)
-        )
+    Args:
+        az: The Azure Agent to use for communication with Azure
+    """
+    super(AzContractBuilder, self).__init__(
+        lambda title, retryable_for_secs=0, strict=False:
+        AzClauseBuilder(
+            title, az=az,
+            retryable_for_secs=retryable_for_secs, strict=strict)
+    )
