@@ -26,7 +26,7 @@ class AzAgent(cli_agent.CliAgent):
             trace: Wether to trace all I/O by default
         """
 
-        super(AzAgent, self).__init__('/Users/jstroheker/bin/az')
+        super(AzAgent, self).__init__('az')
         self.trace = trace
         self.logger = logging.getLogger(__name__)
 
