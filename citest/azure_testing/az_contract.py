@@ -83,7 +83,7 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
                         no_resources_ok=False):
     """Collect the Azure resources of a particular type.
 
-    Args:
+    Attributes:
         az_resource: The az resource module name we're looking in (e.g. 'vm')
         command: The az command name to run (e.g. 'list')
         args: An array of strings containing the remaining az command parameters.
@@ -110,12 +110,12 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
           'Collect {0}'.format(command), strict=self.__strict)
       disjunction_builder.append_verifier_builder(
           collect_builder, new_term=True)
-      self.verifier_builder.append_verifier_builder(
-          disjunction_builder, new_term=True)
+#      self.verifier_builder.append_verifier_builder(
+#          disjunction_builder, new_term=True)
     else:
       collect_builder = jc.ValueObservationVerifierBuilder(
           'Collect {0}'.format(command), strict=self.__strict)
-      self.verifier_builder.append_verifier_builder(collect_builder)
+#      self.verifier_builder.append_verifier_builder(collect_builder)
 
     return collect_builder
 
