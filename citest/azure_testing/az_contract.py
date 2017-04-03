@@ -1,12 +1,13 @@
-# Contract for Azure Testing on citest
-#
+# Create the base agent for Azure CITest scenario
 
-# Importing the necessary python module
+"""Support for specifying citest.json_contract.Contract on Azure resources."""
+
+# Python modules
 import json
 import logging
 import traceback
 
-# Import the modules from citest
+# CITest Modules
 from .. import json_contract as jc
 from ..json_predicate import JsonError
 from ..service_testing import cli_agent
@@ -18,18 +19,15 @@ class AzObjectObserver(jc.ObjectObserver):
   def __init__(self, az, args, filter=None):
     """Construct the observer.
 
-    Args:
-    az = AzCloudAgent instance to use.
-    args: Commang-line arguments list to execute.
+    Attributes:
+        az = AzCloudAgent instance to use.
+        args: Commang-line arguments list to execute.
+        filter: If provided, then use this to filter observations.
     """
 
     super(AzObjectObserver, self).__init__(filter)
     self.__az = az
     self.__args = args
-
-  def export_to_json_snapshot(self, snapshot, entity):
-    snapshot.edge_builder.make_control(entity, 'Args', self.__args)
-    super(AzObjectObserver, self).export_to_json_snapshot(snapshot, entity)
 
   def __str__(self):
     return 'AzObjectObserver({0})'.format(self.__args)
@@ -64,11 +62,11 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
   def __init__(self, title, az, retryable_for_secs=0, strict=False):
     """Construct new clause.
 
-    Args:
-    title: The string title for the clause is only for reporting purposes.
-    az: The AzAgent to make the observation for the clause to verify.
-    retryable_for_secs: Number of seconds that observations can be retried
-        if their verification initially fails.
+    Attributes:
+        title: The string title for the clause is only for reporting purposes.
+        az: The AzAgent to make the observation for the clause to verify.
+        retryable_for_secs: Number of seconds that observations can be retried
+                            if their verification initially fails.
     strict: DEPRECATED flag indicating whether the clauses (added later)
         must be true for all objects (strict) or at least one (not strict).
         See ValueObservationVerifierBuilder for more information.
@@ -81,8 +79,8 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
     self.__strict = strict
 
   def collect_resources(self, az_resource, command,
-                          args=None, filter=None,
-                          no_resources_ok=False):
+                        args=None, filter=None,
+                        no_resources_ok=False):
     """Collect the Azure resources of a particular type.
 
     Args:
