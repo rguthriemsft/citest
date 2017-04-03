@@ -21,7 +21,7 @@ class AzAgent(cli_agent.CliAgent):
     """
 
     # Local path of the AZ CLI
-    super(AzAgent, self).__init__('/Users/jstroheker/bin/az')
+    super(AzAgent, self).__init__('az')
     # Activate the logging and trace
     self.trace = trace
     self.logger = logging.getLogger(__name__)
