@@ -40,21 +40,21 @@ class AzObjectObserver(jc.ObjectObserver):
             cli_agent.CliAgentRunError(self.__az, az_response))
         return []
 
-    decode = json.JSONDecoder()
+    decoder = json.JSONDecoder()
     try:
-        doc = decode.decode(az_response.output)
-        if not isinstance(doc, list):
-            doc = [doc]
-        observation.add_all_objects(doc)
+      doc = decoder.decode(az_response.output)
+      if not isinstance(doc, list):
+        doc = [doc]
+      observation.add_all_objects(doc)
+      #self.filter_all_objects_to_observation(context, doc, observation)
     except ValueError as vex:
         error = 'Invalid JSON in response: %s' % str(az_response)
-        logging.getLogger(__name__).info('%s\n%s\n---------------\n',
-                                            error, traceback.format_exc())
+        logging.getLogger(__name__).info('%s\n%s\n-----------------\n',
+                                         error, traceback.format_exc())
         observation.add_error(JsonError(error, vex))
         return []
 
     return observation.objects
-
 
 class AzClauseBuilder(jc.ContractClauseBuilder):
   """A ContractClause that facilitate observing the Azure state """
