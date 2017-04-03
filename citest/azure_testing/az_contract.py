@@ -40,7 +40,7 @@ class AzObjectObserver(jc.ObjectObserver):
     if not az_response.ok():
         observation.add_error(
             cli_agent.CliAgentRunError(self.__az, az_response))
-    return []
+        return []
 
     decode = json.JSONDecoder()
     try:
@@ -56,40 +56,6 @@ class AzObjectObserver(jc.ObjectObserver):
         return []
 
     return observation.objects
-
-
-    """Specify a resource instance to inspect later.
-    example of az command that will be leveraged :
-    Name / Resource Group / Type
-    az vm show -g resource_group --name name_of_the_object
-
-    Args:
-    type: name for this Azure resource type.
-    name: the name of the specified resource instance to inspect.
-
-    Return:
-    An jc.AzObjectObserver object to return the specified resource details when called.
-    """
-    resgroup = None
-    if extra_args is None:
-        extra_args = []
-
-    if self.__az.command_needs_resgroup(type, 'show'):
-        resgroup = self.__az.resgroup
-    try:
-        if extra_args.index('-g') >= 0:
-            resgroup = None
-    except ValueError:
-        pass
-
-    show_cmd = ['list']
-    if name:
-        show_cmd.append(name)
-
-    cmd = self.__az.build_az_command_args(
-        type, show_cmd + extra_args,
-        resgroup=self.__az.resgroup, location=location)
-    return AzObjectObserver(self.__az, cmd)
 
 
 class AzClauseBuilder(jc.ContractClauseBuilder):
