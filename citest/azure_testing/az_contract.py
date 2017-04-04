@@ -1,12 +1,13 @@
-# Contract for Azure Testing on citest
-#
+# Create the base agent for Azure CITest scenario
 
-# Importing the necessary python module
+"""Support for specifying citest.json_contract.Contract on Azure resources."""
+
+# Python modules
 import json
 import logging
 import traceback
 
-# Import the modules from citest
+# CITest Modules
 from .. import json_contract as jc
 from ..json_predicate import JsonError
 from ..service_testing import cli_agent
@@ -18,18 +19,15 @@ class AzObjectObserver(jc.ObjectObserver):
   def __init__(self, az, args, filter=None):
     """Construct the observer.
 
-    Args:
-    az = AzCloudAgent instance to use.
-    args: Commang-line arguments list to execute.
+    Attributes:
+        az = AzCloudAgent instance to use.
+        args: Commang-line arguments list to execute.
+        filter: If provided, then use this to filter observations.
     """
 
     super(AzObjectObserver, self).__init__(filter)
     self.__az = az
     self.__args = args
-
-  def export_to_json_snapshot(self, snapshot, entity):
-    snapshot.edge_builder.make_control(entity, 'Args', self.__args)
-    super(AzObjectObserver, self).export_to_json_snapshot(snapshot, entity)
 
   def __str__(self):
     return 'AzObjectObserver({0})'.format(self.__args)
@@ -58,52 +56,17 @@ class AzObjectObserver(jc.ObjectObserver):
 
     return observation.objects
 
-
-    # """Specify a resource instance to inspect later.
-    # example of az command that will be leveraged :
-    # Name / Resource Group / Type
-    # az vm show -g resource_group --name name_of_the_object
-
-    # Args:
-    # type: name for this Azure resource type.
-    # name: the name of the specified resource instance to inspect.
-
-    # Return:
-    # An jc.AzObjectObserver object to return the specified resource details when called.
-    # """
-    # resgroup = None
-    # if extra_args is None:
-    #     extra_args = []
-
-    # if self.__az.command_needs_resgroup(type, 'show'):
-    #     resgroup = self.__az.resgroup
-    # try:
-    #     if extra_args.index('-g') >= 0:
-    #         resgroup = None
-    # except ValueError:
-    #     pass
-
-    # show_cmd = ['list']
-    # if name:
-    #     show_cmd.append(name)
-
-    # cmd = self.__az.build_az_command_args(
-    #     type, show_cmd + extra_args,
-    #     resgroup=self.__az.resgroup, location=location)
-    # return AzObjectObserver(self.__az, cmd)
-
-
 class AzClauseBuilder(jc.ContractClauseBuilder):
   """A ContractClause that facilitate observing the Azure state """
 
   def __init__(self, title, az, retryable_for_secs=0, strict=False):
     """Construct new clause.
 
-    Args:
-    title: The string title for the clause is only for reporting purposes.
-    az: The AzAgent to make the observation for the clause to verify.
-    retryable_for_secs: Number of seconds that observations can be retried
-        if their verification initially fails.
+    Attributes:
+        title: The string title for the clause is only for reporting purposes.
+        az: The AzAgent to make the observation for the clause to verify.
+        retryable_for_secs: Number of seconds that observations can be retried
+                            if their verification initially fails.
     strict: DEPRECATED flag indicating whether the clauses (added later)
         must be true for all objects (strict) or at least one (not strict).
         See ValueObservationVerifierBuilder for more information.
@@ -116,11 +79,11 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
     self.__strict = strict
 
   def collect_resources(self, az_resource, command,
-                          args=None, filter=None,
-                          no_resources_ok=False):
+                        args=None, filter=None,
+                        no_resources_ok=False):
     """Collect the Azure resources of a particular type.
 
-    Args:
+    Attributes:
         az_resource: The az resource module name we're looking in (e.g. 'vm')
         command: The az command name to run (e.g. 'list')
         args: An array of strings containing the remaining az command parameters.
@@ -147,12 +110,12 @@ class AzClauseBuilder(jc.ContractClauseBuilder):
           'Collect {0}'.format(command), strict=self.__strict)
       disjunction_builder.append_verifier_builder(
           collect_builder, new_term=True)
-      self.verifier_builder.append_verifier_builder(
-          disjunction_builder, new_term=True)
+#      self.verifier_builder.append_verifier_builder(
+#          disjunction_builder, new_term=True)
     else:
       collect_builder = jc.ValueObservationVerifierBuilder(
           'Collect {0}'.format(command), strict=self.__strict)
-      self.verifier_builder.append_verifier_builder(collect_builder)
+#      self.verifier_builder.append_verifier_builder(collect_builder)
 
     return collect_builder
 
