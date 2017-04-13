@@ -1,14 +1,15 @@
+build/
 out/
 .gradle/
-build/
 *.iml
 *.ipr
 *.iws
 .idea/
+.vscode/
 *.hprof
 *.pyc
 *~
-#*
+\#*
 *.html
 *.log
 *.journal
